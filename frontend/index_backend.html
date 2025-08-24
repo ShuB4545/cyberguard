@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberGuard - Brute Force Estimator & Safe Simulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+        }
+
+        .glass-effect {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+        }
+
+        .neon-border {
+            box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
+            border: 1px solid rgba(34, 197, 94, 0.5);
+        }
+
+        .danger-border {
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+            border: 1px solid rgba(239, 68, 68, 0.5);
+        }
+
+        .warning-border {
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+            border: 1px solid rgba(245, 158, 11, 0.5);
+        }
+
+        .pulse-animation {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+
+        .typing-animation {
+            overflow: hidden;
+            border-right: 2px solid #22c55e;
+            white-space: nowrap;
+            animation: typing 3.5s steps(40, end), blink-caret .75s step-end infinite;
+        }
+
+        @keyframes typing {
+            from { width: 0; }
+            to { width: 100%; }
+        }
+
+        @keyframes blink-caret {
+            from, to { border-color: transparent; }
+            50% { border-color: #22c55e; }
+        }
+
+        .strength-bar {
+            height: 8px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .strength-weak { background: linear-gradient(90deg, #ef4444, #f87171); }
+        .strength-fair { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+        .strength-good { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+        .strength-strong { background: linear-gradient(90deg, #22c55e, #4ade80); }
+
+        .metric-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .floating-icon {
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .simulation-terminal {
+            background: #0a0e1a;
+            border: 1px solid #22c55e;
+            border-radius: 8px;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .terminal-line {
+            margin: 5px 0;
+            opacity: 0;
+            animation: fadeInUp 0.5s ease forwards;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .progress-ring {
+            transition: stroke-dasharray 0.35s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+
+        .tab-button {
+            transition: all 0.3s ease;
+        }
+
+        .tab-button.active {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
+        }
+
+        .hero-image {
+            position: relative;
+            overflow: hidden;
+            border-radius: 12px;
+        }
+
+        .hero-image::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, rgba(34, 197, 94, 0.1), rgba(59, 130, 246, 0.1));
+            z-index: 1;
+        }
+
+        .feature-card {
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: left 0.5s;
+        }
+
+        .feature-card:hover::before {
+            left: 100%;
+        }
+
+        .feature-card:hover {
+            transform: scale(1.02);
+        }
+    </style>
+</head>
+<body class="bg-slate-900">
+    <!-- Header -->
+    <header class="glass-effect border-b border-slate-700/50 sticky top-0 z-50">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-green-400 to-blue-500 rounded-lg flex items-center justify-center floating-icon">
+                        <i class="fas fa-shield-alt text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
+                            CyberGuard
+                        </h1>
+                        <p class="text-sm text-slate-400">Security Analysis Suite</p>
+                    </div>
+                </div>
+                <nav class="hidden md:flex space-x-6">
+                    <a href="#estimator" class="text-slate-300 hover:text-green-400 transition-colors">Estimator</a>
+                    <a href="#simulator" class="text-slate-300 hover:text-green-400 transition-colors">Simulator</a>
+                    <a href="#analytics" class="text-slate-300 hover:text-green-400 transition-colors">Analytics</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="py-20 px-6">
+        <div class="container mx-auto max-w-6xl">
+            <div class="text-center mb-16">
+                <h2 class="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-green-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">
+                    Advanced Security Testing
+                </h2>
+                <p class="text-xl text-slate-300 mb-8 max-w-3xl mx-auto typing-animation">
+                    Professional-grade brute force estimation and secure simulation environment for cybersecurity professionals
+                </p>
+                <div class="hero-image mb-12">
+                    <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/7b3e5eec-dafe-4d3a-a336-68e62af979d8.png" alt="Futuristic cybersecurity command center with multiple holographic displays showing network security data, password strength meters, and real-time threat analysis dashboards in a dark blue and green color scheme" class="w-full h-auto rounded-lg" />
+                </div>
+            </div>
+
+            <!-- Feature Cards -->
+            <div class="grid md:grid-cols-3 gap-8 mb-16">
+                <div class="feature-card glass-effect rounded-xl p-8 text-center neon-border">
+                    <div class="w-16 h-16 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-calculator text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-4">Brute Force Estimator</h3>
+                    <p class="text-slate-300">Calculate attack time estimates with precision using advanced algorithms and real-world attack vectors.</p>
+                </div>
+                <div class="feature-card glass-effect rounded-xl p-8 text-center neon-border">
+                    <div class="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-flask text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-4">Safe Simulator</h3>
+                    <p class="text-slate-300">Test security measures in a controlled environment without compromising real systems.</p>
+                </div>
+                <div class="feature-card glass-effect rounded-xl p-8 text-center neon-border">
+                    <div class="w-16 h-16 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-chart-line text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-4">Advanced Analytics</h3>
+                    <p class="text-slate-300">Comprehensive reporting and visualization of security metrics and vulnerability assessments.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Application -->
+    <main class="container mx-auto px-6 pb-20">
+        <!-- Tab Navigation -->
+        <div class="flex flex-wrap justify-center mb-8 space-x-2">
+            <button id="tab-estimator" class="tab-button active px-6 py-3 rounded-lg font-medium transition-all">
+                <i class="fas fa-lock mr-2"></i>Password Analyzer
+            </button>
+            <button id="tab-simulator" class="tab-button px-6 py-3 rounded-lg font-medium bg-slate-700 hover:bg-slate-600">
+                <i class="fas fa-terminal mr-2"></i>Safe Simulator
+            </button>
+            <button id="tab-analytics" class="tab-button px-6 py-3 rounded-lg font-medium bg-slate-700 hover:bg-slate-600">
+                <i class="fas fa-chart-bar mr-2"></i>Analytics Dashboard
+            </button>
+        </div>
+
+        <!-- Password Analyzer Tab -->
+        <div id="content-estimator" class="tab-content">
+            <div class="grid lg:grid-cols-2 gap-8">
+                <!-- Input Section -->
+                <div class="glass-effect rounded-xl p-8">
+                    <h3 class="text-2xl font-bold mb-6 flex items-center">
+                        <i class="fas fa-key text-green-400 mr-3"></i>
+                        Password Analysis
+                    </h3>
+                    
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Enter Password to Analyze</label>
+                            <div class="relative">
+                                <input 
+                                    type="password" 
+                                    id="passwordInput" 
+                                    class="w-full p-4 bg-slate-800 border border-slate-600 rounded-lg focus:border-green-400 focus:ring-2 focus:ring-green-400/20 transition-all"
+                                    placeholder="Enter your password..."
+                                >
+                                <button id="togglePassword" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-white">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Attack Method</label>
+                            <select id="attackMethod" class="w-full p-4 bg-slate-800 border border-slate-600 rounded-lg focus:border-green-400">
+                                <option value="dictionary">Dictionary Attack</option>
+                                <option value="bruteforce">Pure Brute Force</option>
+                                <option value="hybrid">Hybrid Attack</option>
+                                <option value="rainbow">Rainbow Table</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Hardware Configuration</label>
+                            <select id="hardwareConfig" class="w-full p-4 bg-slate-800 border border-slate-600 rounded-lg focus:border-green-400">
+                                <option value="standard">Standard PC (1M attempts/sec)</option>
+                                <option value="gaming">Gaming PC (10M attempts/sec)</option>
+                                <option value="server">Server Grade (100M attempts/sec)</option>
+                                <option value="cluster">GPU Cluster (1B attempts/sec)</option>
+                                <option value="quantum">Quantum Computer (1T attempts/sec)</option>
+                            </select>
+                        </div>
+
+                        <button id="analyzeBtn" class="w-full bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 py-4 rounded-lg font-medium transition-all transform hover:scale-105">
+                            <i class="fas fa-search mr-2"></i>Analyze Password Strength
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Results Section -->
+                <div class="glass-effect rounded-xl p-8">
+                    <h3 class="text-2xl font-bold mb-6 flex items-center">
+                        <i class="fas fa-chart-line text-blue-400 mr-3"></i>
+                        Security Assessment
+                    </h3>
+
+                    <div id="analysisResults" class="space-y-6">
+                        <div class="text-center text-slate-400 py-12">
+                            <i class="fas fa-shield-alt text-6xl mb-4 opacity-50"></i>
+                            <p>Enter a password to begin analysis</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Metrics Dashboard -->
+            <div class="grid md:grid-cols-4 gap-6 mt-8">
+                <div class="metric-card glass-effect rounded-xl p-6 text-center">
+                    <div class="text-3xl font-bold text-green-400" id="entropyScore">0</div>
+                    <div class="text-sm text-slate-400">Entropy Score</div>
+                </div>
+                <div class="metric-card glass-effect rounded-xl p-6 text-center">
+                    <div class="text-3xl font-bold text-blue-400" id="characterSpace">0</div>
+                    <div class="text-sm text-slate-400">Character Space</div>
+                </div>
+                <div class="metric-card glass-effect rounded-xl p-6 text-center">
+                    <div class="text-3xl font-bold text-purple-400" id="totalCombinations">0</div>
+                    <div class="text-sm text-slate-400">Total Combinations</div>
+                </div>
+                <div class="metric-card glass-effect rounded-xl p-6 text-center">
+                    <div class="text-3xl font-bold text-yellow-400" id="crackTime">∞</div>
+                    <div class="text-sm text-slate-400">Crack Time</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Safe Simulator Tab -->
+        <div id="content-simulator" class="tab-content hidden">
+            <div class="grid lg:grid-cols-2 gap-8">
+                <!-- Simulation Controls -->
+                <div class="glass-effect rounded-xl p-8">
+                    <h3 class="text-2xl font-bold mb-6 flex items-center">
+                        <i class="fas fa-play-circle text-green-400 mr-3"></i>
+                        Simulation Controls
+                    </h3>
+
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Target System</label>
+                            <select id="targetSystem" class="w-full p-4 bg-slate-800 border border-slate-600 rounded-lg focus:border-green-400">
+                                <option value="web">Web Application</option>
+                                <option value="ssh">SSH Server</option>
+                                <option value="ftp">FTP Server</option>
+                                <option value="database">Database Server</option>
+                                <option value="wifi">WiFi Network</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Attack Intensity</label>
+                            <input type="range" id="attackIntensity" min="1" max="10" value="5" class="w-full">
+                            <div class="flex justify-between text-sm text-slate-400 mt-1">
+                                <span>Low</span>
+                                <span>Medium</span>
+                                <span>High</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Simulation Duration (seconds)</label>
+                            <input type="number" id="simDuration" value="30" min="10" max="300" class="w-full p-4 bg-slate-800 border border-slate-600 rounded-lg focus:border-green-400">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <button id="startSimBtn" class="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 py-3 rounded-lg font-medium transition-all">
+                                <i class="fas fa-play mr-2"></i>Start Simulation
+                            </button>
+                            <button id="stopSimBtn" class="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 py-3 rounded-lg font-medium transition-all" disabled>
+                                <i class="fas fa-stop mr-2"></i>Stop Simulation
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Simulation Output -->
+                <div class="glass-effect rounded-xl p-8">
+                    <h3 class="text-2xl font-bold mb-6 flex items-center">
+                        <i class="fas fa-terminal text-blue-400 mr-3"></i>
+                        Live Terminal Output
+                    </h3>
+
+                    <div class="simulation-terminal" id="simulationTerminal">
+                        <div class="terminal-line text-green-400">[SYSTEM] CyberGuard Safe Simulator v2.1 Ready</div>
+                        <div class="terminal-line text-blue-400">[INFO] Simulation environment initialized</div>
+                        <div class="terminal-line text-yellow-400">[READY] Awaiting simulation parameters...</div>
+                    </div>
+
+                    <div class="mt-6">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sm font-medium">Simulation Progress</span>
+                            <span id="simProgress" class="text-sm text-slate-400">0%</span>
+                        </div>
+                        <div class="w-full bg-slate-700 rounded-full h-2">
+                            <div id="simProgressBar" class="bg-gradient-to-r from-green-400 to-blue-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Simulation Metrics -->
+            <div class="glass-effect rounded-xl p-8 mt-8">
+                <h3 class="text-2xl font-bold mb-6">Real-time Metrics</h3>
+                <div class="grid md:grid-cols-4 gap-6">
+                    <div class="bg-slate-800 rounded-lg p-6 text-center">
+                        <div class="text-2xl font-bold text-green-400" id="simAttempts">0</div>
+                        <div class="text-sm text-slate-400">Attack Attempts</div>
+                    </div>
+                    <div class="bg-slate-800 rounded-lg p-6 text-center">
+                        <div class="text-2xl font-bold text-blue-400" id="simSuccess">0</div>
+                        <div class="text-sm text-slate-400">Successful Logins</div>
+                    </div>
+                    <div class="bg-slate-800 rounded-lg p-6 text-center">
+                        <div class="text-2xl font-bold text-red-400" id="simBlocked">0</div>
+                        <div class="text-sm text-slate-400">Blocked Attempts</div>
+                    </div>
+                    <div class="bg-slate-800 rounded-lg p-6 text-center">
+                        <div class="text-2xl font-bold text-purple-400" id="simRate">0</div>
+                        <div class="text-sm text-slate-400">Attempts/Second</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics Dashboard Tab -->
+        <div id="content-analytics" class="tab-content hidden">
+            <div class="grid lg:grid-cols-2 gap-8">
+                <!-- Security Score Chart -->
+                <div class="glass-effect rounded-xl p-8">
+                    <h3 class="text-2xl font-bold mb-6 flex items-center">
+                        <i class="fas fa-tachometer-alt text-green-400 mr-3"></i>
+                        Security Score Trends
+                    </h3>
+                    <canvas id="securityChart" width="400" height="200"></canvas>
+                </div>
+
+                <!-- Attack Vector Analysis -->
+                <div class="glass-effect rounded-xl p-8">
+                    <h3 class="text-2xl font-bold mb-6 flex items-center">
+                        <i class="fas fa-bullseye text-red-400 mr-3"></i>
+                        Attack Vector Distribution
+                    </h3>
+                    <canvas id="attackChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+
+            <!-- Security Recommendations -->
+            <div class="glass-effect rounded-xl p-8 mt-8">
+                <h3 class="text-2xl font-bold mb-6 flex items-center">
+                    <i class="fas fa-lightbulb text-yellow-400 mr-3"></i>
+                    Security Recommendations
+                </h3>
+                <div class="grid md:grid-cols-2 gap-6" id="recommendations">
+                    <!-- Recommendations will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Threat Intelligence -->
+            <div class="glass-effect rounded-xl p-8 mt-8">
+                <h3 class="text-2xl font-bold mb-6 flex items-center">
+                    <i class="fas fa-shield-virus text-blue-400 mr-3"></i>
+                    Threat Intelligence Feed
+                </h3>
+                <div class="space-y-4" id="threatFeed">
+                    <!-- Threat feed will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="glass-effect border-t border-slate-700/50 py-8">
+        <div class="container mx-auto px-6 text-center">
+            <div class="flex justify-center space-x-6 mb-4">
+                <i class="fab fa-github text-2xl text-slate-400 hover:text-green-400 cursor-pointer transition-colors"></i>
+                <i class="fab fa-twitter text-2xl text-slate-400 hover:text-green-400 cursor-pointer transition-colors"></i>
+                <i class="fab fa-linkedin text-2xl text-slate-400 hover:text-green-400 cursor-pointer transition-colors"></i>
+            </div>
+            <p class="text-slate-400">© 2024 CyberGuard Security Suite. For educational and authorized testing purposes only.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Tab Management
+        function initTabs() {
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const targetId = button.id.replace('tab-', 'content-');
+                    
+                    // Update button states
+                    tabButtons.forEach(btn => {
+                        btn.classList.remove('active');
+                        btn.classList.add('bg-slate-700', 'hover:bg-slate-600');
+                    });
+                    
+                    button.classList.add('active');
+                    button.classList.remove('bg-slate-700', 'hover:bg-slate-600');
+                    
+                    // Update content visibility
+                    tabContents.forEach(content => {
+                        content.classList.add('hidden');
+                    });
+                    
+                    document.getElementById(targetId).classList.remove('hidden');
+                });
+            });
+        }
+
+        // Password Analysis
+        function calculatePasswordStrength(password) {
+            let score = 0;
+            let characterSpace = 0;
+            
+            // Character space calculation
+            if (/[a-z]/.test(password)) characterSpace += 26;
+            if (/[A-Z]/.test(password)) characterSpace += 26;
+            if (/[0-9]/.test(password)) characterSpace += 10;
+            if (/[^a-zA-Z0-9]/.test(password)) characterSpace += 32;
+            
+            // Entropy calculation
+            const entropy = password.length * Math.log2(characterSpace);
+            
+            // Strength scoring
+            if (password.length >= 8) score += 25;
+            if (password.length >= 12) score += 25;
+            if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score += 20;
+            if (/[0-9]/.test(password)) score += 15;
+            if (/[^a-zA-Z0-9]/.test(password)) score += 15;
+            
+            return {
+                score: Math.min(score, 100),
+                entropy: entropy,
+                characterSpace: characterSpace,
+                combinations: Math.pow(characterSpace, password.length)
+            };
+        }
+
+        function estimateCrackTime(combinations, method, hardware) {
+            const rates = {
+                standard: 1000000,      // 1M attempts/sec
+                gaming: 10000000,       // 10M attempts/sec
+                server: 100000000,      // 100M attempts/sec
+                cluster: 1000000000,    // 1B attempts/sec
+                quantum: 1000000000000  // 1T attempts/sec
+            };
+            
+            const methodMultipliers = {
+                dictionary: 0.1,
+                bruteforce: 1,
+                hybrid: 0.5,
+                rainbow: 0.01
+            };
+            
+            const effectiveRate = rates[hardware] * methodMultipliers[method];
+            const seconds = combinations / (2 * effectiveRate); // Average case
+            
+            return formatTime(seconds);
+        }
+
+        function formatTime(seconds) {
+            if (seconds < 60) return `${seconds.toFixed(1)} seconds`;
+            if (seconds < 3600) return `${(seconds / 60).toFixed(1)} minutes`;
+            if (seconds < 86400) return `${(seconds / 3600).toFixed(1)} hours`;
+            if (seconds < 31536000) return `${(seconds / 86400).toFixed(1)} days`;
+            if (seconds < 31536000000) return `${(seconds / 31536000).toFixed(1)} years`;
+            return `${(seconds / 31536000000).toFixed(1)} centuries`;
+        }
+
+        function getStrengthLevel(score) {
+            if (score < 25) return { level: 'weak', class: 'danger-border', color: 'strength-weak' };
+            if (score < 50) return { level: 'fair', class: 'warning-border', color: 'strength-fair' };
+            if (score < 75) return { level: 'good', class: 'neon-border', color: 'strength-good' };
+            return { level: 'strong', class: 'neon-border', color: 'strength-strong' };
+        }
+
+        function displayAnalysisResults(password, analysis, crackTime) {
+            const strength = getStrengthLevel(analysis.score);
+            const resultsContainer = document.getElementById('analysisResults');
+            
+            resultsContainer.innerHTML = `
+                <div class="text-center mb-6">
+                    <div class="w-32 h-32 mx-auto relative">
+                        <svg class="w-32 h-32 transform -rotate-90">
+                            <circle cx="64" cy="64" r="56" stroke="currentColor" stroke-width="8" fill="transparent" class="text-slate-700"/>
+                            <circle cx="64" cy="64" r="56" stroke="currentColor" stroke-width="8" fill="transparent" 
+                                class="progress-ring text-green-400" 
+                                stroke-dasharray="${(analysis.score / 100) * 351.86} 351.86"/>
+                        </svg>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <span class="text-2xl font-bold">${analysis.score}%</span>
+                        </div>
+                    </div>
+                    <h4 class="text-xl font-bold mt-4 capitalize">${strength.level} Password</h4>
+                </div>
+                
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex justify-between mb-2">
+                            <span>Strength Level</span>
+                            <span class="capitalize font-medium">${strength.level}</span>
+                        </div>
+                        <div class="strength-bar ${strength.color}" style="width: ${analysis.score}%"></div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div class="bg-slate-800 p-4 rounded-lg">
+                            <div class="text-slate-400">Length</div>
+                            <div class="font-bold text-lg">${password.length} chars</div>
+                        </div>
+                        <div class="bg-slate-800 p-4 rounded-lg">
+                            <div class="text-slate-400">Entropy</div>
+                            <div class="font-bold text-lg">${analysis.entropy.toFixed(1)} bits</div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-slate-800 p-4 rounded-lg">
+                        <div class="text-slate-400 text-sm mb-2">Time to Crack</div>
+                        <div class="font-bold text-xl text-yellow-400">${crackTime}</div>
+                    </div>
+                    
+                    <div class="space-y-2">
+                        <h5 class="font-medium">Security Recommendations:</h5>
+                        <ul class="text-sm text-slate-300 space-y-1">
+                            ${password.length < 12 ? '<li>• Use at least 12 characters</li>' : ''}
+                            ${!/[A-Z]/.test(password) ? '<li>• Add uppercase letters</li>' : ''}
+                            ${!/[0-9]/.test(password) ? '<li>• Include numbers</li>' : ''}
+                            ${!/[^a-zA-Z0-9]/.test(password) ? '<li>• Add special characters</li>' : ''}
+                            ${analysis.score < 75 ? '<li>• Consider using a passphrase</li>' : ''}
+                        </ul>
+                    </div>
+                </div>
+            `;
+            
+            // Update metrics
+            document.getElementById('entropyScore').textContent = analysis.entropy.toFixed(1);
+            document.getElementById('characterSpace').textContent = analysis.characterSpace;
+            document.getElementById('totalCombinations').textContent = analysis.combinations.toExponential(2);
+            document.getElementById('crackTime').textContent = crackTime;
+        }
+
+        // Simulation Functions
+        let simulationInterval;
+        let simulationData = {
+            attempts: 0,
+            success: 0,
+            blocked: 0,
+            rate: 0,
+            startTime: 0,
+            duration: 30
+        };
+
+        function startSimulation() {
+            const targetSystem = document.getElementById('targetSystem').value;
+            const intensity = document.getElementById('attackIntensity').value;
+            const duration = parseInt(document.getElementById('simDuration').value);
+            
+            simulationData = { attempts: 0, success: 0, blocked: 0, rate: 0, startTime: Date.now(), duration: duration };
+            
+            document.getElementById('startSimBtn').disabled = true;
+            document.getElementById('stopSimBtn').disabled = false;
+            
+            addTerminalLine(`[START] Initiating attack simulation on ${targetSystem}`, 'text-green-400');
+            addTerminalLine(`[CONFIG] Attack intensity: ${intensity}/10`, 'text-blue-400');
+            addTerminalLine(`[CONFIG] Duration: ${duration} seconds`, 'text-blue-400');
+            
+            simulationInterval = setInterval(() => {
+                updateSimulation(intensity);
+            }, 100);
+            
+            setTimeout(() => {
+                stopSimulation();
+            }, duration * 1000);
+        }
+
+        function stopSimulation() {
+            clearInterval(simulationInterval);
+            document.getElementById('startSimBtn').disabled = false;
+            document.getElementById('stopSimBtn').disabled = true;
+            
+            addTerminalLine('[COMPLETE] Simulation finished', 'text-yellow-400');
+            addTerminalLine(`[SUMMARY] Total attempts: ${simulationData.attempts}`, 'text-white');
+            addTerminalLine(`[SUMMARY] Success rate: ${((simulationData.success / simulationData.attempts) * 100).toFixed(2)}%`, 'text-white');
+        }
+
+        function updateSimulation(intensity) {
+            const elapsed = (Date.now() - simulationData.startTime) / 1000;
+            const progress = Math.min((elapsed / simulationData.duration) * 100, 100);
+            
+            // Simulate attack attempts based on intensity
+            const newAttempts = Math.floor(Math.random() * intensity * 10);
+            const newSuccess = Math.floor(Math.random() * newAttempts * 0.01);
+            const newBlocked = Math.floor(Math.random() * newAttempts * 0.1);
+            
+            simulationData.attempts += newAttempts;
+            simulationData.success += newSuccess;
+            simulationData.blocked += newBlocked;
+            simulationData.rate = newAttempts * 10; // per second
+            
+            // Update UI
+            document.getElementById('simProgress').textContent = `${progress.toFixed(1)}%`;
+            document.getElementById('simProgressBar').style.width = `${progress}%`;
+            document.getElementById('simAttempts').textContent = simulationData.attempts;
+            document.getElementById('simSuccess').textContent = simulationData.success;
+            document.getElementById('simBlocked').textContent = simulationData.blocked;
+            document.getElementById('simRate').textContent = simulationData.rate;
+            
+            // Add random terminal output
+            if (Math.random() < 0.3) {
+                const messages = [
+                    '[ATTEMPT] Trying credential set...',
+                    '[BLOCKED] Rate limiting detected',
+                    '[SUCCESS] Authentication bypassed',
+                    '[ERROR] Connection timeout',
+                    '[INFO] Switching attack vector'
+                ];
+                const colors = ['text-gray-400', 'text-red-400', 'text-green-400', 'text-yellow-400', 'text-blue-400'];
+                const randomMsg = messages[Math.floor(Math.random() * messages.length)];
+                const randomColor = colors[Math.floor(Math.random() * colors.length)];
+                addTerminalLine(randomMsg, randomColor);
+            }
+        }
+
+        function addTerminalLine(text, colorClass) {
+            const terminal = document.getElementById('simulationTerminal');
+            const line = document.createElement('div');
+            line.className = `terminal-line ${colorClass}`;
+            line.textContent = text;
+            terminal.appendChild(line);
+            terminal.scrollTop = terminal.scrollHeight;
+            
+            // Keep only last 50 lines
+            while (terminal.children.length > 50) {
+                terminal.removeChild(terminal.firstChild);
+            }
+        }
+
+        // Analytics Charts
+        function initCharts() {
+            // Security Score Trend Chart
+            const securityCtx = document.getElementById('securityChart').getContext('2d');
+            new Chart(securityCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'Security Score',
+                        data: [65, 72, 68, 75, 82, 89],
+                        borderColor: '#22c55e',
+                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { labels: { color: '#e2e8f0' } }
+                    },
+                    scales: {
+                        x: { ticks: { color: '#94a3b8' } },
+                        y: { ticks: { color: '#94a3b8' } }
+                    }
+                }
+            });
+
+            // Attack Vector Distribution Chart
+            const attackCtx = document.getElementById('attackChart').getContext('2d');
+            new Chart(attackCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Brute Force', 'Dictionary', 'Rainbow Table', 'Social Engineering', 'Phishing'],
+                    datasets: [{
+                        data: [30, 25, 15, 20, 10],
+                        backgroundColor: [
+                            '#ef4444',
+                            '#f59e0b',
+                            '#3b82f6',
+                            '#8b5cf6',
+                            '#10b981'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { labels: { color: '#e2e8f0' } }
+                    }
+                }
+            });
+        }
+
+        function loadRecommendations() {
+            const recommendations = [
+                {
+                    title: 'Enable Two-Factor Authentication',
+                    description: 'Implement 2FA across all critical systems to add an extra layer of security.',
+                    priority: 'high',
+                    icon: 'fa-mobile-alt'
+                },
+                {
+                    title: 'Regular Security Audits',
+                    description: 'Conduct quarterly penetration testing and vulnerability assessments.',
+                    priority: 'medium',
+                    icon: 'fa-search'
+                },
+                {
+                    title: 'Update Password Policies',
+                    description: 'Enforce stronger password requirements and regular password changes.',
+                    priority: 'high',
+                    icon: 'fa-lock'
+                },
+                {
+                    title: 'Employee Security Training',
+                    description: 'Provide regular cybersecurity awareness training for all staff members.',
+                    priority: 'medium',
+                    icon: 'fa-graduation-cap'
+                }
+            ];
+
+            const container = document.getElementById('recommendations');
+            container.innerHTML = recommendations.map(rec => `
+                <div class="bg-slate-800 rounded-lg p-6 border-l-4 ${rec.priority === 'high' ? 'border-red-400' : 'border-yellow-400'}">
+                    <div class="flex items-start space-x-4">
+                        <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <i class="fas ${rec.icon} text-white"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold mb-2">${rec.title}</h4>
+                            <p class="text-slate-300 text-sm">${rec.description}</p>
+                            <span class="inline-block mt-2 px-2 py-1 text-xs rounded-full ${rec.priority === 'high' ? 'bg-red-500/20 text-red-400' : 'bg-yellow-500/20 text-yellow-400'}">
+                                ${rec.priority.toUpperCase()} PRIORITY
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function loadThreatFeed() {
+            const threats = [
+                {
+                    time: '2 minutes ago',
+                    type: 'Critical',
+                    message: 'New ransomware variant detected targeting healthcare systems',
+                    source: 'CISA Alert'
+                },
+                {
+                    time: '15 minutes ago',
+                    type: 'High',
+                    message: 'Zero-day vulnerability discovered in popular CMS platform',
+                    source: 'CVE-2024-12345'
+                },
+                {
+                    time: '1 hour ago',
+                    type: 'Medium',
+                    message: 'Increased phishing campaigns targeting financial institutions',
+                    source: 'FBI Cybersecurity'
+                },
+                {
+                    time: '3 hours ago',
+                    type: 'Low',
+                    message: 'New botnet infrastructure identified and taken down',
+                    source: 'Interpol Cyber'
+                }
+            ];
+
+            const container = document.getElementById('threatFeed');
+            container.innerHTML = threats.map(threat => `
+                <div class="bg-slate-800 rounded-lg p-4 border-l-4 ${
+                    threat.type === 'Critical' ? 'border-red-500' :
+                    threat.type === 'High' ? 'border-orange-500' :
+                    threat.type === 'Medium' ? 'border-yellow-500' : 'border-green-500'
+                }">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="font-medium text-sm ${
+                            threat.type === 'Critical' ? 'text-red-400' :
+                            threat.type === 'High' ? 'text-orange-400' :
+                            threat.type === 'Medium' ? 'text-yellow-400' : 'text-green-400'
+                        }">${threat.type.toUpperCase()}</span>
+                        <span class="text-xs text-slate-400">${threat.time}</span>
+                    </div>
+                    <p class="text-slate-300 mb-2">${threat.message}</p>
+                    <span class="text-xs text-blue-400">${threat.source}</span>
+                </div>
+            `).join('');
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            initTabs();
+            initCharts();
+            loadRecommendations();
+            loadThreatFeed();
+
+            // Password toggle
+            document.getElementById('togglePassword').addEventListener('click', () => {
+                const input = document.getElementById('passwordInput');
+                const icon = document.querySelector('#togglePassword i');
+                
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.className = 'fas fa-eye-slash';
+                } else {
+                    input.type = 'password';
+                    icon.className = 'fas fa-eye';
+                }
+            });
+
+            // Password analysis
+            document.getElementById('analyzeBtn').addEventListener('click', () => {
+                const password = document.getElementById('passwordInput').value;
+                const method = document.getElementById('attackMethod').value;
+                const hardware = document.getElementById('hardwareConfig').value;
+                
+                if (!password) {
+                    alert('Please enter a password to analyze');
+                    return;
+                }
+                
+                const analysis = calculatePasswordStrength(password);
+                const crackTime = estimateCrackTime(analysis.combinations, method, hardware);
+                
+                displayAnalysisResults(password, analysis, crackTime);
+            });
+
+            // Simulation controls
+            document.getElementById('startSimBtn').addEventListener('click', startSimulation);
+            document.getElementById('stopSimBtn').addEventListener('click', stopSimulation);
+        });
+    </script>
+    <script src="enable_backend.js"></script>
+</body>
+</html>
